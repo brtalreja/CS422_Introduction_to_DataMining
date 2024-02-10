@@ -1,0 +1,50 @@
+---
+title: "CS 422 HW0"
+author: "Bhavesh Rajesh Talreja (A20516822)"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+  html_document:
+    toc: yes
+    df_print: paged
+---
+
+### Part 1-A
+```{r}
+
+data(cars)
+cars
+
+```
+
+### Part 1-B.
+
+```{r}
+
+plot(x=cars$speed, y=cars$dist,
+     xlab="Speed", ylab="Distance",
+     main="Scatterplot of Speed Vs Distance")
+
+plot(x=cars$speed, y=cars$dist, type="l",
+     xlab="Speed", ylab="Distance",
+     main="Line Graph of Speed Vs Distance")
+```
+
+### Part 1-C (Summary)
+```{r}
+
+summary(cars)
+
+```
+
+### Part 1-D
+```{r}
+
+max.speed <- summary(cars$speed)["Max."]
+min.dist  <- summary(cars$dist)["Min."]
+str <- paste0("Maximum speed is ", max.speed, ", and minimum distance is ", 
+              min.dist)
+str
+
+```

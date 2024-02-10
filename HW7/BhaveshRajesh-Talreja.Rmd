@@ -1,0 +1,276 @@
+---
+title: "CS 422 HW7"
+author: "Bhavesh Rajesh Talreja (A20516822)"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+  html_document:
+    toc: yes
+    df_print: paged
+---
+
+### Part 2 - Setup
+
+```{r}
+  
+library(keras)
+library(dplyr)
+library(caret)
+library(rpart)
+library(rpart.plot)
+
+rm(list=ls())
+
+```
+
+### Part 2-2.1 - Setup.
+
+```{r}
+# Set working directory as needed
+# setwd("...")
+
+df <- read.csv("wifi_localization.csv")
+
+# Seed the PRNG
+set.seed(1122)
+df <- df[sample(nrow(df)), ] # Shuffle, as all of the data in the .csv file
+                             # is ordered by label!  
+
+```
+
+##### Here class 0 is equivalent to 1st class which corresponds to Room 1.
+##### Here class 1 is equivalent to 2nd class which corresponds to Room 2.
+##### Here class 2 is equivalent to 3rd class which corresponds to Room 3.
+##### Here class 3 is equivalent to 4th class which corresponds to Room 4.
+
+### Part 2-2.1-(a).
+
+```{r}
+
+set.seed(1122)
+index <- sample(1:nrow(df), 0.80*dim(df)[1])
+train.df <- df[index,]
+test.df <- df[-index, ]
+
+#train.df
+#test.df
+
+model <- rpart(room ~ ., data=train.df, method="class")
+rpart.plot(model, extra=104, fallen.leaves=T, type=4, main="Wifi Localization data set Decision Tree")
+
+options(digits = 2)
+
+predictions <- predict(model, test.df, type="class")
+
+#Confusion matrix manually.
+
+#Actual class values.
+total_room_1 <- sum(test.df$room == "1")
+total_room_2 <- sum(test.df$room == "2")
+total_room_3 <- sum(test.df$room == "3")
+total_room_4 <- sum(test.df$room == "4")
+
+#Predicted class values.
+pred_room_1 <- sum(test.df$room == "1" & predictions == "1")
+pred_room_2 <- sum(test.df$room == "2" & predictions == "2")
+pred_room_3 <- sum(test.df$room == "3" & predictions == "3")
+pred_room_4 <- sum(test.df$room == "4" & predictions == "4")
+
+#confusion matrix display.
+conf_mat <- confusionMatrix(predictions, as.factor(test.df$room))
+
+cat("Decision Tree Model\n")
+cat("\tOverall accuracy:", conf_mat$overall["Accuracy"], "\n")
+class_details <- conf_mat$byClass
+cat("\tSensitivity\tClass 0:", class_details[1,1], " Class 1:", class_details[2,1],
+    "\n\t\t\tClass 2:", class_details[3,1], " Class 3:", class_details[4,1], "\n")
+cat("\tSpecificity\tClass 0:", class_details[1,2], " Class 1:", class_details[2,2],
+    "\n\t\t\tClass 2:", class_details[3,2], " Class 3:", class_details[4,2], "\n")
+cat("\tPPV\t\tClass 0:", class_details[1,3], " Class 1:", class_details[2,3],
+    "\n\t\t\tClass 2:", class_details[3,3], " Class 3:", class_details[4,3], "\n")
+cat("\tBal. Acc.\tClass 0:", class_details[1,11], " Class 1:", class_details[2,11],
+    "\n\t\t\tClass 2:", class_details[3,11], " Class 3:", class_details[4,11], "\n")
+
+```
+
+### Part 2-2.1-(b)-(i).
+
+```{r}
+# Note that in (b) either use a new variable to store the model, or null out
+# the variable that stored the model in (a) if you want to reuse that variable.
+# The reason is that if you don't null it out, the model in (b) will have
+# residual information left over from (a) and your results will not be quite
+# accurate.
+
+df$label[df$room == "1"] <- 0
+df$label[df$room == "2"] <- 1
+df$label[df$room == "3"] <- 2
+df$label[df$room == "4"] <- 3
+
+df$room <- NULL
+
+set.seed(1122)
+index <- sample(1:nrow(df), 0.80*dim(df)[1])
+train.df <- df[index,]
+test.df <- df[-index, ]
+
+X_train <- select(train.df, -label)
+y_train <- train.df$label
+y_train.ohe <- to_categorical(y_train)
+
+X_test <- select(test.df, -label)
+y_test <- test.df$label
+y_test.ohe <- to_categorical(y_test)
+
+nn_model <- NULL
+
+nn_model <- keras_model_sequential() %>%
+  layer_dense(units = 1, activation="relu", input_shape=c(7)) %>%
+  layer_dense(units = 4, activation="softmax")
+
+nn_model
+
+nn_model %>%
+  compile(loss = "categorical_crossentropy",
+          optimizer="adam",
+          metrics=c("accuracy"))
+
+nn_model %>% fit(
+  data.matrix(X_train),
+  y_train.ohe,
+  epochs=100,
+  batch_size=32,
+  validation_split=0.20
+)
+
+loss_acc <- nn_model %>% evaluate(as.matrix(X_test), y_test.ohe)
+
+cat("Neural Network Model\n")
+cat("\tFor one neuron in hidden layer, loss: ", loss_acc[['loss']], ", Accuracy: ", loss_acc[['accuracy']])
+
+```
+
+### Part 2-2.1-(b)-(ii).
+#### Question: Look at the plot for accuracy; why do you think the accuracy is low?
+#### Textual Answer: Looking at the plot for accuracy, one reason that the accuracy is low can be that we used only hidden layer and that too with only one neuron in that hidden layer. Also, the hidden layer used ReLU as the activation function which does not work well with the negative input values. As the ReLU function outputs 0 when input data values are negative. Even though the activation fuction is not directly applied to the input data, it is applied after the first layer a(Wx+b). If the weights are properly initialized, the input to the activation function can be both positive and the negative values. (The plot has been provided as a JPEG file along with this rmd and nb.html file for the reference.)
+
+### Part 2-2.1-(b)-(iii).
+#### Question: Examine the predicted labels, and print these out. What pattern do you see in the predicted labels?
+```{r}
+
+pred.prob <- predict(nn_model, as.matrix(X_test))
+pred.class <- apply(pred.prob, 1, function(x) which.max(x)-1)
+confusionMatrix(as.factor(pred.class), as.factor(y_test))
+
+pred.class
+
+```
+#### Textual Answer: After examining the predicted values, we can observe a pattern i.e. the neural network predicts all every input as class 0 i.e. for all of the input wifi signal data, the network predicts the user is in room 1. This is becuase the ReLU function deals with negative values in this network and there is only one node in the hidden layer which predicts all input as the class 0 as ReLU outputs zero if input is negative.
+
+### Part 2-2.1-(b)-(iv).
+#### Question:  Is the bias of the model high or low or just about right? Why?
+#### Textual Answer: The bias of the model is defined as the difference between the average prediction value and average target value. Since, the model is not very expressive and predicts all the inputs as class zero of the four classes, the difference between the predicted and target value is high and hence, the bias of the model is also high.
+
+### Part 2-2.1-(b)-(v).
+#### Question:  Do you think we will get better results if we increase the training to 200 epochs? Why?
+#### Textual Answer: Even if we increase the training to 200 epochs, the results will be the same along the lines. The reason for the poor results is not the number of epochs, the reason is the number of nodes in the hidden layer, the activation function in the hidden layer. Hence, to get better results, we have to change something in those areas rather than increase the number of epochs.
+
+### Part 2-2.1-(c)-(i).
+```{r}
+
+df$label[df$room == "1"] <- 0
+df$label[df$room == "2"] <- 1
+df$label[df$room == "3"] <- 2
+df$label[df$room == "4"] <- 3
+
+df$room <- NULL
+
+set.seed(1122)
+index <- sample(1:nrow(df), 0.80*dim(df)[1])
+train.df <- df[index,]
+test.df <- df[-index, ]
+
+X_train <- select(train.df, -label)
+y_train <- train.df$label
+y_train.ohe <- to_categorical(y_train)
+
+X_test <- select(test.df, -label)
+y_test <- test.df$label
+y_test.ohe <- to_categorical(y_test)
+
+better_nn_model <- NULL
+
+better_nn_model <- keras_model_sequential() %>%
+  layer_dense(units = 4, activation="relu", input_shape=c(7)) %>%
+  layer_dense(units = 4, activation="softmax")
+
+better_nn_model
+
+better_nn_model %>%
+  compile(loss = "categorical_crossentropy",
+          optimizer="adam",
+          metrics=c("accuracy"))
+
+better_nn_model %>% fit(
+  data.matrix(X_train),
+  y_train.ohe,
+  epochs=100,
+  batch_size=32,
+  validation_split=0.20
+)
+
+loss_acc <- better_nn_model %>% evaluate(as.matrix(X_test), y_test.ohe)
+
+cat("Better Neural Network Model\n")
+cat("\tBest model has 4 neurons in the hidden layer.\n\tIn this model, loss: ", loss_acc[['loss']], ", Accuracy: ", loss_acc[['accuracy']])
+
+```
+### Part 2-2.1-(c)-(ii).
+#### Question: Is the bias of the model high or low or just about right? Why?
+```{r}
+
+pred.prob <- predict(better_nn_model, as.matrix(X_test))
+pred.class <- apply(pred.prob, 1, function(x) which.max(x)-1)
+conf_mat <- confusionMatrix(as.factor(pred.class), as.factor(y_test))
+
+conf_mat
+pred.class
+
+```
+#### Textual Answer: The bias of the model is defined as the difference between the average prediction value and average target value. Since, the model has good ability to express and predicts 96% of the inputs correctly, the difference between the predicted and target value is low and hence, the bias of the model is also low, which we desire.
+
+### Part 2-2.1-(c)-(iii).
+#### Question: Based on the plots of accuracy and validation, at what epoch do you think we should stop the training to minimize over-fitting?
+#### Textual Answer: Based on the accuracy and validation plot, to avoid or minimize over-fitting, we should stop the training around n=55 to 65 epochs. As post that number of epochs, the accuracy and val_accuracy stays almost constant. (The plot has been provided as a JPEG file along with this rmd and nb.html file for the reference.)
+
+### Part 2-2.1-(d) - Setup.
+#### Question: For the best model in (c), print the confusion matrix, and summarize the confusion matrix in the format shown below:
+##### Here class 0 is equivalent to 1st class which corresponds to Room 1.
+##### Here class 1 is equivalent to 2nd class which corresponds to Room 2.
+##### Here class 2 is equivalent to 3rd class which corresponds to Room 3.
+##### Here class 3 is equivalent to 4th class which corresponds to Room 4.
+```{r}
+
+cat("Best Neural Network Model\n")
+cat("\tOverall accuracy:", conf_mat$overall["Accuracy"], "\n")
+class_details <- conf_mat$byClass
+cat("\tSensitivity\tClass 0:", class_details[1,1], " Class 1:", class_details[2,1],
+    "\n\t\t\tClass 2:", class_details[3,1], " Class 3:", class_details[4,1], "\n")
+cat("\tSpecificity\tClass 0:", class_details[1,2], " Class 1:", class_details[2,2],
+    "\n\t\t\tClass 2:", class_details[3,2], " Class 3:", class_details[4,2], "\n")
+cat("\tPPV\t\tClass 0:", class_details[1,3], " Class 1:", class_details[2,3],
+    "\n\t\t\tClass 2:", class_details[3,3], " Class 3:", class_details[4,3], "\n")
+cat("\tBal. Acc.\tClass 0:", class_details[1,11], " Class 1:", class_details[2,11],
+    "\n\t\t\tClass 2:", class_details[3,11], " Class 3:", class_details[4,11], "\n")
+
+```
+
+### Part 2-2.1-(d)-(i).
+#### Question: Compare the above output to similar output of a decision tree model in (a). Comment on what you observe.
+#### Textual Answer: On comparing the above output to the output of the decision model, we observe a similar accuracy i.e. 96% in the neural network model and 95% in the decision tree model. It can also be observed that in both the models the confusion matrix values are quite similar which means that both the models equally perform good in predicting the users location according to wifi signal strength.
+
+
+### Part 2-2.1-(d)-(ii).
+#### Question: If you had to deploy one of these two models in production, which one would you choose and why?
+#### Textual Answer: Based on all the figures and patterns, we have obtained so far, we can choose either of the models to deploy in production. However, I would choose to deploy neural networks in production because of its slightly better accuracy to perform and predict the output values.

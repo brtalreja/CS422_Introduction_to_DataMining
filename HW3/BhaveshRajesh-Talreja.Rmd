@@ -1,0 +1,87 @@
+---
+title: "CS 422 HW3"
+author: "Bhavesh Rajesh Talreja (A20516822)"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float: yes
+---
+
+### Setup Part 1.1.
+
+```{r}
+
+#clearing the existing data from the environment.
+rm(list=ls())
+
+#Here we are installing the rpart and rpart.plot package, loading the iris data set.
+
+#install.packages("rpart") #installed and then commented.
+#install.packages("rpart.plot") #installed and then commented.
+library("rpart")
+library("rpart.plot")
+data(iris)
+iris
+
+#Here our next task is to use the iris data to train the decision trees model. We are creating a decision tree model on training data.
+
+model <- rpart(Species ~ ., data=iris, method="class")
+
+```
+
+### Part 1.1-(a) and Part 1.1-(d).
+
+```{r}
+
+#Here we are plotting the decision tree using the rpart.plot package, with the parameter extra as 104 as our model has more than 2 response class, type=4 for getting more details at each vertex.
+
+rpart.plot(model, extra=104, fallen.leaves=T, type=4, main="Iris Dataset Decision Tree")
+
+```
+
+### Part 1.1-(b).
+
+```{r}
+
+#Here we displaying the summary of the model which gives us the detailed information about each node, especially about the default class predicted at each level:vertex.
+
+summary(model)
+
+```
+
+```{r}
+
+#Here we displaying the results of the summary of the model.
+
+writeLines("Level 1, Vertex 1: Default class is setosa")
+writeLines("Level 2, Vertex 1: Default class is setosa")
+writeLines("Level 2, Vertex 2: Default class is versicolor")
+writeLines("Level 3, Vertex 1: Default class is versicolor")
+writeLines("Level 3, Vertex 2: Default class is virginica")
+
+```
+
+### Part 1.1-(c).
+
+```{r}
+
+#Here we displaying the print summary of the model which gives us the detailed information about the levels involved in modelling and about the splitting conditions with splitting attributes.
+
+print(model,digits=2)
+
+```
+
+```{r}
+
+#Here we displaying the results of the print summary of the model. Even though the print summary shows the value for level 2 as 2.4, we can see the value as 2.5 in the decision tree above presented and it is just the matter of precision where 2.45 is being rounded off to 2.4.
+
+writeLines("Level 1, split on attribute: Petal.length.\nSplit points: < 2.5 left subtree, >= 2.5 right subtree")
+
+writeLines("\n")
+
+writeLines("Level 2, split on attribute: Petal.width.\nSplit points: < 1.8 left subtree, >= 1.8 right subtree")
+
+```

@@ -1,0 +1,106 @@
+---
+title: "CS 422 HW1"
+author: "Bhavesh Rajesh Talreja (A20516822)"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float: yes
+---
+
+### Part 2-2.1-(i).
+
+```{r}
+
+#Here we are loading the us-covid.csv data using read.csv() and eliminating the lines which start with "#" character.
+
+data.df <- read.csv("us-covid.csv", comment.char="#")
+data.df
+
+```
+
+### Part 2-2.1-(ii).
+
+```{r}
+
+#Here we are loading the package dplyr using library() and dropping the last column [using select()] as instructed to eliminate "N/A".
+
+library(dplyr)
+data.df <- select(data.df, -confirmed_deaths)
+data.df
+
+```
+
+### Part 2-2.1-(iii)-(a).
+
+```{r}
+
+#Here we are sorting the data in dataframe using arrange(desc()) and then displaying the top 6 entries using top_n(dataframe,n) where n=6 in our case.
+
+data.df %>%
+  arrange(desc(total_cases)) -> descSortedData
+
+top_n(descSortedData,6)
+
+```
+
+### Part 2-2.1-(iii)-(b).
+
+```{r}
+
+#Here we are using the data sorted in the previous step and then displaying the bottom 6 entries using top_n(dataframe,n) where n=-6 in our case to consider the entries from bottom.
+
+top_n(descSortedData,-6)
+
+```
+
+### Part 2-2.1-(iv)-(a).
+
+```{r}
+
+#Here we are dropping the first two columns from the dataframe using select(). Our goal here is to visualize the correlation and hence we load the psych package using library(). We then use paris.panels(dataframe) to get the correlation visualization.
+
+data.df_2 <- select(data.df, -state,-level)
+
+library(psych)
+
+pairs.panels(data.df_2)
+
+```
+#### Textual Answer: Correlation is defined as a concept of identifying relationships between two numeric variables and is not appropriate for non-numeric data. Hence, we eliminate the first two columns from the correlation analysis.
+
+### Part 2-2.1-(iv)-(b).
+
+#### Textual Answer: As it is evident from the above graph, total_cases and total_deaths have the highest correlation with correlation value of 0.98.
+
+### Part 2-2.1-(iv)-(c).
+
+#### Textual Answer: As it is evident from the above graph, cases_last_7_days and case_rate_per_100K have the lowest correlation with correlation value of 0.00.
+
+### Part 2-2.1-(v)-(a).
+
+```{r}
+
+#In this question, we are focusing on 3 columns Number of confirmed cases, Number of probable cases, and Number of total deaths. Using plot(), we plot the Number of total deaths Vs. Number of confirmed + probable cases.
+
+plot(data.df$confirmed+data.df$probable,data.df$total_deaths,main="Plot of Total Deaths Vs. Confirmed & Probable cases", xlab="Number of Confirmed plus Probable Cases", ylab="Number of Total Deaths")
+
+```
+
+### Part 2-2.1-(v)-(b).
+
+#### Textual Answer: When we have a look at the above graph, we can see that a lot of points (to be precise, n=19 points) lie vertical to the X-axis. In other terms, the data is trying to tell us that even though the number of confirmed plus probable cases were zero for these 19 records, still N number of deaths occured. This is an anomaly in the data which does not makes sense or in the data mining terms the characteristics of these observations are significantly different from the rest of the data. Also, we can confirm this in another way by considering the fact that number of total cases should be equal to number of confirmed cases plus number of probable cases. If we have a look at the data for these 19 records, we have N number of total cases but the number of confirmed and probable cases are zero.
+
+### Part 2-2.1-(v)-(c).
+
+```{r}
+
+#In this question, we want to print all the cases which show the anomaly we talk about in the previous question. For that we use a logical condition check to get the required data and we only print the requested columns for the anomalies using select().
+
+anomalies.data <- data.df[data.df$confirmed+data.df$probable == 0,]
+
+select(anomalies.data, state, total_deaths, confirmed, probable, total_cases)
+
+```

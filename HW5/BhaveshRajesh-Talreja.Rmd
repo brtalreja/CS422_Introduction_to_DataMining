@@ -1,0 +1,124 @@
+---
+title: "CS 422 HW5"
+author: "Bhavesh Rajesh Talreja (A20516822)"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+  html_document:
+    toc: yes
+    df_print: paged
+---
+
+### Part 2-2.1-(a).
+
+#### Implemented using python. The python script and canonical transaction files are added in the archive for reviewing.
+
+### Part 2-2.1 - Setup.
+
+```{r}
+
+#clearing the existing data from the environment.
+rm(list=ls())
+
+#Here we are provided with transaction datasets of different sizes.
+
+library("arules")
+library("arulesViz")
+
+tr.1k  <- read.transactions("tr-1k-canonical.csv" , sep=",")
+tr.5k  <- read.transactions("tr-5k-canonical.csv" , sep=",")
+tr.20k <- read.transactions("tr-20k-canonical.csv", sep=",")
+tr.75k <- read.transactions("tr-75k-canonical.csv", sep=",")
+
+tr.1k
+tr.5k
+tr.20k
+tr.75k
+
+```
+
+### Part 2-2.1-(b).
+
+```{r}
+
+#Here our next task is to mine the frequent itemsets and association rules using arules and arulesViz.
+
+summary(tr.1k)
+summary(tr.5k)
+summary(tr.20k)
+summary(tr.75k)
+
+#minimum support is 0.1 and minimum confidence is 0.8.
+#Tried the support value of 0.01 as 0.001 took immeasurable time to run.
+#Tried the confidence value of 0.9 to find good association rules.
+
+#Frequent Itemsets for all transaction datasets. Inspect shows the required output i.e. All items in it described by the product name and along with it, the support of that itemset.
+freq_IS_1k <- apriori(tr.1k, parameter=list(support=0.01,target="frequent itemsets"))
+inspect(sort(freq_IS_1k, decreasing=T, by="count"))
+
+freq_IS_5k <- apriori(tr.5k, parameter=list(support=0.01,target="frequent itemsets"))
+inspect(sort(freq_IS_5k, decreasing=T, by="count"))
+
+freq_IS_20k <- apriori(tr.20k, parameter=list(support=0.01,target="frequent itemsets"))
+inspect(sort(freq_IS_20k, decreasing=T, by="count"))
+
+freq_IS_75k <- apriori(tr.75k, parameter=list(support=0.01,target="frequent itemsets"))
+inspect(sort(freq_IS_75k, decreasing=T, by="count"))
+
+#Association Rules mining for all transaction datasets. Inspect shows the required output i.e. for each rule: the antecedent, the consequent, the support of the rule, the confidence of the rule.
+rules_1k <- apriori(tr.1k, parameter=list(support=0.01,confidence=0.9))
+summary(rules_1k)
+inspect(sort(rules_1k, decreasing=T, by="confidence"))
+
+rules_5k <- apriori(tr.5k, parameter=list(support=0.01,confidence=0.9))
+summary(rules_5k)
+inspect(sort(rules_5k, decreasing=T, by="confidence"))
+
+rules_20k <- apriori(tr.20k, parameter=list(support=0.01,confidence=0.9))
+summary(rules_20k)
+inspect(sort(rules_20k, decreasing=T, by="confidence"))
+
+rules_75k <- apriori(tr.75k, parameter=list(support=0.01,confidence=0.9))
+summary(rules_75k)
+inspect(sort(rules_75k, decreasing=T, by="confidence"))
+
+```
+
+### Part 2-2.1-(c).
+
+#### Question: Compare the rules you obtained for each different subset (1,000 – 75,000 transactions). How does the number of transactions affect the results you observed? (Write the answer in your R markup file, easily identified.)
+
+#### Textual Answer: On comparing the rules for each transaction dataset, we can make the following observations:
+#### For 1k transaction dataset: number of rules = 68, mean support = 0.025, mean confidence = 0.966, mean lift = 13.10.
+#### For 5k transaction dataset: number of rules = 70, mean support = 0.026, mean confidence = 0.952, mean lift = 13.25.
+#### For 20k transaction dataset: number of rules = 70, mean support = 0.024, mean confidence = 0.949, mean lift = 13.19.
+#### For 75k transaction dataset: number of rules = 73, mean support = 0.025, mean confidence = 0.946, mean lift = 13.15.
+#### Based on these observations, it can be concluded that number of transactions does not affect much the values of number of rules, support, confidence, and lift as the mean values lie around 68 to 73, 0.024 to 0.026, 0.94 to 0.97, and  13.10 to 13.25 respectively.
+
+### Part 2-2.1-(d)-(i).
+
+#### Question: Answer the following questions for the 75,000 transactions dataset using the same support level as determined in (b): What is the most frequently purchased item or itemset?
+
+
+```{r}
+
+inspect(head(sort(freq_IS_75k, descending=T, by="count")))
+
+```
+
+#### Textual Answer: From the above inspect table of 75K transaction dataset, we can observe that the most frequently purchased itemset is {Coffee Eclair} with a support value of 0.109 and count value of 8193.
+
+### Part 2-2.1-(d)-(ii).
+
+#### Question: Answer the following questions for the 75,000 transactions dataset using the same support level as determined in (b): What is the least frequently purchased item or itemset?
+
+
+```{r}
+
+inspect(tail(sort(freq_IS_75k, descending=T, by="count")))
+
+```
+
+#### Textual Answer: From the above inspect table of 75K transaction dataset, we can observe that the least frequently purchased itemset is {Apple Croissant, Apple Danish, Apple Tart, Cherry Soda} with a support value of 0.021 and count value of 1544.
+

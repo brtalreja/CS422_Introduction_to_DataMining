@@ -1,0 +1,137 @@
+---
+title: "CS 422 HW6 (EC)"
+author: "Bhavesh Rajesh Talreja (A20516822)"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+  html_document:
+    toc: yes
+    df_print: paged
+---
+
+```{r}
+  
+rm(list=ls())
+
+library(ggplot2)
+library(gganimate)
+library(gifski)
+
+# Set working directory as needed
+# setwd("...")
+
+points <- read.csv("perceptron.csv")
+
+```
+
+```{r}
+
+# The Perceptron function
+#
+# PARAMETERS:
+# points: The dataset that is to be separated
+# lamda:  The learning rate
+# gamma:  The error threshold
+#
+# RETURNS
+# A list containing three named elements.  The elements
+# should be named: 
+# "weights" - Contains the final weight vector (learned weights)
+# "epochs"  - Number of epochs it took to converge
+# "error"   - A vector of error calculated at the end of each epoch
+
+perceptron <- function(points, lamda, gamma) {
+
+#training data set, initialize epoch value and weights vector with 0 and random values respectively.
+D.train <- points
+e.val <- 0
+w.vec <- sample(-1:1,size=3)
+
+#initialize error vector as empty vector and average error (which will be compared with the threshold error value i.e. gamma) as infinity for the until...do part of the algorithm.
+err.vec <- c()
+avg.err <- Inf
+
+#while the average error is less than the threshold value i.e. gamma, run this loop.
+while (avg.err > gamma) {
+  sum.err <- 0 #initialize the current instance error as zero.
+  avg.err <- 0 #updating the average error value as zero to calculate the actual average error.
+  for (i in 1:nrow(D.train)){
+    curr.row <- D.train[i,] #taking each row from the training data set to predict the class.
+    y.pred <- my_sign(curr.row,w.vec) #calling the prediction function.
+    sum.err <- sum.err + abs(curr.row[[1]] - y.pred) #calculating the error sum.
+    
+    #updating the weights as per the current error obtained. This is the heart of perceptron.
+    w.vec <- w.vec + lamda*(curr.row[[1]] - y.pred)*c(curr.row[[2]],curr.row[[3]],curr.row[[4]])
+  }
+  
+  #We have sum of all the errors in sum.err variable, we get the average error value by dividing the sum with number of data points in the training data set.
+  avg.err <- (sum.err/nrow(D.train))
+  
+  #We update the error vector by appending each average error value into this vector. Using this we can plot the training error curve. 
+  err.vec <- c(err.vec,c(avg.err))
+  
+  #e.val is the epoch value. Updating e.val as the next epoch value.
+  e.val <- e.val+1
+  
+  #plotting the points and hyperplanes separating the points iteration by iteration to see the trend in an animation using ggplot library.
+  g <- ggplot(points,aes(x1,x2,colour = label)) +
+    geom_point(aes(x1,x2)) +
+    geom_abline(intercept=(-w.vec[1]/w.vec[2]),slope=(-w.vec[2]/w.vec[3])) +
+    labs(title='Line fitting',x='x',y='y') +
+    transition_null() +
+    aes("linear")
+
+  print(animate(g))
+
+  #p <- animate(g, nframes = 350, end_pause = 10)
+  #anim_save(filename = "Perceptron fit lines.gif", animation = p)
+  plot(points[[3]], points[[4]], ylab = "y", xlab = "x", main= "Line fitting")
+  
+  #Segregating the two classes by filtering and eventually coloring those to see a visual difference.
+  class1 <- points[points[[1]] == 1,]
+  class2 <- points[points[[1]] == -1,]
+  points(class1[[3]], class1[[4]], col = "red")
+  points(class2[[3]], class2[[4]], col = "blue")
+  
+  #To plot the trace line, consider the following calculation of the weight vector.
+  # w1 + w2*a + w3*b = 0
+  # Solving for a and b:
+  # put b = 0, w1 + w2*a = 0 => a = -w1/w2.
+  # hence b = -w1/w3 - (w2/w3)*a which gives the slope as -(w2/w3).
+  abline(a = -w.vec[1]/w.vec[2], b = -w.vec[2]/w.vec[3])
+  }
+
+  #plotting the training error curve using the error vector.
+  plot(1:length(err.vec), err.vec, type = 'l', xlab = "Epoch", ylab = "Error", main = "Perceptron training error")
+  
+  #Return the list of 3 required elements as specified in the problem statement.
+  return(list(weights = w.vec, epochs = e.val, error = err.vec))
+}
+
+# The sign function, this is the prediction function
+# PARAMETERS:
+# x : The X vector (input that needs to be predicted)
+# weights: The weight vector
+# RETURNS:
+# -1 or 1
+
+my_sign <- function(x, weights) {
+
+y.pred <- x[[2]]*weights[1] + x[[3]]*weights[2] + x[[4]]*weights[3]
+y.pred <- if (y.pred>0) 1 else -1
+return(y.pred)
+
+}
+
+```
+
+# MAIN ENTRY POINT
+
+```{r}
+
+#testing the perceptron model with lamda=0.05 i.e. the learning rate and gamma=0.001 i.e. the error threshold.
+test <- perceptron(points, 0.05, 0.001)
+test
+
+```

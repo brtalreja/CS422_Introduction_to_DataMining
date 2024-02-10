@@ -1,0 +1,231 @@
+---
+title: "CS 422 HW8"
+author: "Bhavesh Rajesh Talreja (A20516822)"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+  html_document:
+    toc: yes
+    df_print: paged
+---
+
+### Part 2 - Setup
+
+```{r}
+
+library(ggplot2)
+library(factoextra)
+library(fpc)
+library(dbscan)
+
+rm(list=ls())
+
+```
+
+### Part 2-2.1-(a)-(i).
+#### Data cleanup - Think of what attributes, if any, you may want to omit from the dataset when you do the clustering. Indicate all of the attributes you removed before doing the clustering.
+
+#### Textual Answer: Since, the objective is to do clustering and we know that clustering is a unsupervised learning technique. Hence, we do not want to include labels column for training the model. In our case, Name is the column we must omit from the dataset. Rest all columns are essential and will be used to train the model.
+
+### Part 2-2.1-(a)-(ii).
+#### Data cleanup - Does the data need to be standardized?
+
+#### Textual Answer: The reason we should standardize the data is that it provides consistency across the data and using it for business tasks becomes trivial. Also, as discussed in the lecture, as a rule of thumb we should standardize the data if we have numeric data. 
+
+### Part 2-2.1-(a)-(iii).
+#### Data cleanup - You will have to clean the data to remove multiple spaces and make the comma character the delimiter. Please make sure you include your cleaned dataset in the archive file you upload.
+
+#### Textual Answer: The file is cleaned and included in the archive file along with other materials.
+
+### Part 2-2.1-(b)-Setup.
+
+```{r}
+#reading the csv into the dataframe df.
+df <- read.csv("file19.csv")
+
+#Saving the df in another df for further evaluation.
+df.wName <- df
+
+#Removing the name column as explained above.
+df$Name <- NULL
+df$X <- NULL #Removing the serial column.
+
+#Standardizing the data
+df.std <- scale(df)
+
+```
+
+### Part 2-2.1-(b)-(i).
+#### Question: Determine how many clusters are needed by running the WSS or Silhouette graph. Plot the graph using fviz_nbclust().
+
+```{r}
+
+#As required, used fviz_nbclust to determine how many clusters are needed.
+fviz_nbclust(df.std, kmeans, method="silhouette")
+
+```
+
+#### Textual Answer: As it is evident from the above plot, we can see that the suggested number of clusters are 8.
+
+### Part 2-2.1-(b)-(ii).
+#### Question: Once you have determined the number of clusters, run k-means clustering on the dataset to create that many clusters. Plot the clusters using fviz_cluster().
+
+```{r}
+
+#using the suggested number of clusters in k-means algorithm.
+k.std <- kmeans(df.std, centers=8)
+
+fviz_cluster(k.std, data=df.std)
+
+```
+
+### Part 2-2.1-(b)-(iii).
+#### Question: How many observations are in each cluster?
+```{r}
+
+c.range <- c(1:8)
+
+for (i in c.range){
+  cat("There are",table(k$cluster)[[i]],"observations in cluster", i, "\n")
+}
+
+```
+
+### Part 2-2.1-(b)-(iv).
+#### Question:  What is the total SSE of the clusters?
+```{r}
+
+#The total SSE of the clusters is given by totss component of the kmeans function.
+cat("The total SSE of the clusters is", k$totss)
+
+
+```
+
+### Part 2-2.1-(b)-(v).
+#### Question:  What is the SSE of each cluster?
+```{r}
+
+#The SSE of each cluster is given by withinss component of the kmeans function.
+
+for (i in c.range){
+  cat("The SSE of cluster",i, "is", k$withinss[[i]],"\n")
+}
+
+```
+
+### Part 2-2.1-(b)-(vi).
+#### Question:  Perform an analysis of each cluster to determine how the mammals are grouped in each cluster, and whether that makes sense? Act as the domain expert here; clustering has produced what you asked it to. Examine the results based on your knowledge of the animal kingdom and see whether the results meet expectations. Provide me a summary of your observations.
+```{r}
+
+#Cluster analysis
+
+for (i in c.range){
+  cat("Animals in cluster",i, ":", paste(df.wName[which(k$cluster==i),c('Name')], collapse = (", ")),"\n")
+}
+
+```
+
+#### Textual Answer: Based on the analysis of the animals clubbed in each cluster, it makes sesne that these are classified as per their appearance. For example: In cluster 1, most of the animals are of the type squirrel or mouse. Similarly, all in  cluster 2 have a similar appearance. All in We obtained the same results for cluster 3. There are a couple of exceptions like the Grey seal in cluster 4 should have been clustered in cluster 3, common mole and pika should have been clustered in cluster 1, and some of the animals in cluster 8 also should be in other clusters. As we know that these models are not perfect, the current results obtained are good as per my understanding. The results may improve if we try a different number of clusters.
+
+### Part 2-2.2-(a).
+#### Question: Do you think it is necessary to standardize the dataset? Justify your answer.
+```{r}
+
+s1 <- read.csv("s1.csv")
+s1
+
+s1.std <- scale(s1)
+
+```
+
+#### Textual Answer: As we can observe, the values in the attributes x and y are very large. If we standardize these values, it will bring consistency across these values, as the large values can dominate the results. Also, as a general thumb of rule, while dealing with numeric data, we should standardize the data.
+
+### Part 2-2.2-(b)-(i).
+#### Question: Plot the dataset.
+```{r}
+
+plot(s1.std,main="Raw s1 standardized data before DBSCAN")
+
+```
+
+### Part 2-2.2-(b)-(ii).
+#### Question: Describe in 1-2 sentences what you observe (visually) in the plot: how many clusters do you see? Are they well-separated?
+#### Textual Answer: Observing the above plot, we can see that there are about 15 clusters and they appear to be well-separated to an extent.
+
+### Part 2-2.2-(c)-(i).
+#### Question:  Let’s see how many clusters K-Means finds. Using the “wss” method, draw the scree plot for the optimal number of clusters.
+
+```{r}
+
+#Using the wss method to find the optimal number of clusters.
+#we use the k.max parameter for two reasons:
+#[1] We know the original number of clusters are around 15, without k.max, wss method plots for 10 values on x axis.
+#[2] We want to see if the downward trend continues even after 10 and where it stabilizes.
+fviz_nbclust(s1.std, kmeans, method="wss",k.max=20)
+
+```
+
+#### Textual Answer: Based on the above plot, we can see that the numbers of clusters stabilize around 19 and 20. One can make appropriate guess and proceed with that number of clusters for clustering algorithm.
+
+### Part 2-2.2-(c)-(ii).
+#### Question:  Let’s see how many clusters K-Means finds. Using the “silhouette” method, draw the scree plot for the optimal number of clusters.
+
+```{r}
+
+#Using the silhouette method to find the optimal number of clusters.
+#we use the k.max parameter for two reasons:
+#[1] We know the original number of clusters are around 15, without k.max, silhouette method plots for 10 values on x axis.
+#[2] We want to see if the upward trend continues even after 10 and where it stabilizes.
+fviz_nbclust(s1.std, kmeans, method="silhouette",k.max=20)
+
+```
+
+#### Textual Answer: Based on the above plot, we can see that the suggested numbers of clusters is 19.
+
+### Part 2-2.2-(c)-(iii).
+#### Question:  Let’s see how many clusters K-Means finds. What do you think is the appropriate number of clusters if we were to use K-Means clustering on this dataset?
+#### Textual Answer: Based on the scree plots using wss and silhouette methods, since both suggest the number of clusters should be around 19. Let's use N=19 clusters for k-means clustering.
+
+### Part 2-2.2-(d)-(i).
+#### Question: Using the answer to (c)(iii), perform K-Means clustering on the dataset and plot the results.
+
+```{r}
+
+k <- kmeans(s1.std, center= 19)
+fviz_cluster(k, data=s1.std)
+
+```
+
+### Part 2-2.2-(d)-(ii).
+#### Question: Comment on how K-Means has clustered the dataset.
+#### Textual Answer: Observing at the cluster plot, k-means does a fairly good job in clustering the data. However, compared to the original plot, we plotted in Part 2-2.2-(b)-(i), there are certain clusters which have been split into 2 or 3 parts which as per my understanding should be 1 cluster. As a ball park figure, I can say that the k-means have performed clustering with 60% efficiency. The splitting of clusters gives us the information that the N=19 is more number of clusters than it is actually required. It should be somewhat around 15.
+
+### Part 2-2.2-(e)-(i).
+#### Question: We will now perform dbscan on this dataset. What is the value of MinPts that you think is reasonable for this dataset? Why?
+#### Textual Answer: When we look at the original plot in Part 2-2.2-(b)-(i), we can see that the data is very dense in the middle of the each cluster and there are some points which lie around the each cluster. We want to minimize the number of points outside the cluster and hence we should choose the number of MinPts for this dataset as around 3 to 6, on further inspection in the below execution part, the number of MinPts I found reasonable are 6.
+
+### Part 2-2.2-(e)-(ii).
+#### Question: We will now perform dbscan on this dataset. In order to find the value of ɛ (eps), we need to calculate the average distance of every point to its k nearest neighbors. Set the value of k to be the result you obtained in (e)(i). Then, using this value determine what the correct value for ɛ should be. (Hint: Look at the online manual page for the function kNNdistplot()). Using the scree plot from kNNdistplot(), you should find the best value of ɛ that clusters the dataset into the expected number of clusters determined in (c)(iii). To do this, perform a grid search on ɛ, and for each value of ɛ, run dbscan algorithm and visualize the clustering results. (You can do this manually in the R REPL and find the best value for ɛ, you do not need to write a loop.) Using the best value of ɛ, plot the results of the dbscan algorithm on the dataset and state how many clusters you see in the plot in the form below: At minPts = ?, eps = ?, there are ? clusters.
+
+```{r}
+
+kNNdistplot(s1.std,k = 6)
+abline(h = 0.08, lty = 2)
+
+```
+
+```{r}
+
+db <- fpc::dbscan(s1.std, eps = 0.08, MinPts = 6)
+plot(db, s1.std, main = "DBSCAN Cluster Plot", frame = FALSE)
+
+```
+
+#### Textual Answer: Using the k value as 6 found in Part-2-2.2-(e)-(i), we plotted the kNNdistplot and the slope increase or the knee in the plot occurs around ɛ = 0.07 to 0.09. Using various values of ɛ in the R REPL, I found that the optimal value for ɛ is 0.08 as it gives us the expected number of clusters as compared to the original plot in Part-2-2.2-(b)-(i) i.e. around 15 clusters.
+
+```{r}
+
+cat("At minPts = 6, eps = 0.08, there are 15 clusters.")
+
+```

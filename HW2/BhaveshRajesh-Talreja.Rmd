@@ -1,0 +1,312 @@
+---
+title: "CS 422 HW2"
+author: "Bhavesh Rajesh Talreja (A20516822)"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float: yes
+---
+
+### Part 2-2.1-(a).
+
+```{r}
+
+#Here we are installing the ISLR package, loading the Auto data set.
+
+#install.packages("ISLR") #installed and then commented.
+library("ISLR")
+data(Auto)
+
+```
+
+```{r}
+
+#Here our next task is to divide the 95% Auto data set as train data and the remaining 5% as test data. Once, the data set is divided into training and testing data, we are creating a linear regression model on training data and we do that for all columns except name data column (why we skip name column: explanation given below in part 2-2.1-(a)-(i)).
+
+set.seed(1122)
+index <- sample(1:nrow(Auto), 0.95*dim(Auto)[1])
+train.df <- Auto[index,]
+test.df <- Auto[-index, ]
+
+model.auto <- lm(mpg ~ . -name,data=train.df)
+
+```
+
+### Part 2-2.1-(a)-(i).
+
+#### Textual Answer: In the above model, we create the model using all columns (except name column) to predict mpg. Linear regression is a parametric method to predict values of a dependent variable using the data of independent variable. Considering the fact that name column in the Auto data set has textual/non numeric data, it does not seem logical to input textual/non numeric data into an equation and expect to predict a numeric value. This is the reason, we created the model which predicts the value of mpg based on all data columns except name.
+
+### Part 2-2.1-(a)-(ii).
+
+```{r}
+
+#Here we are instructed to print the summary and comment on how well the model with all the predictors fits the data using R^2, RSE, RMSE, Adjusted R^2 value.
+
+#df.residual(model) gives us the value of degrees of freedom of residuals.
+#nrow() gives the number of rows in the data frame.
+#length() gives the number of predictors in the model.
+
+summary(model.auto)
+
+RSS <- sum((train.df$mpg-model.auto$fitted.values)^2)
+TSS <- sum((train.df$mpg-mean(train.df$mpg))^2)
+
+R.sq_2 <- format(round(1 - (RSS/TSS),2))
+print(paste("R-sq value is ",R.sq_2))
+
+Adj.R.sq_2 <- format(round(1-((1-(1-RSS/TSS))*(nrow(train.df)-1)/(nrow(train.df)-length(model.auto$coefficients)-1)),2))
+print(paste("Adjusted R-sq value is ",Adj.R.sq_2))
+
+RSE <- sqrt(RSS/df.residual(model.auto))
+RSE_2 <- format(round(RSE,2))
+print(paste("RSE is ",RSE_2))
+
+RMSE <- sqrt(RSS/nrow(train.df))
+RMSE_2 <- format(round(RMSE,2))
+print(paste("RMSE is ",RMSE_2))
+
+```
+
+#### Textual Answer: From the summary of this model, we can say that the model fits well with the data as we have a F-statistic value of 232.2, a high R-squared value of 0.82, RSE and RMSE are 3.37 and 3.33 respectively which can be considered to be low value, also the p-value is very low which is another indicator that the model is a good fit.
+
+### Part 2-2.1-(a)-(iii).
+
+```{r}
+
+#Here we are plotting the residuals of the model for residual analysis. Residual plots can expose a biased model better than the numeric output parameters. The residual plots are more effective because it displays problematic patterns in the residuals.
+
+plot(model.auto$residuals,
+     xlab="Index",
+     ylab="Residuals",
+     main="Residual plot")
+
+plot(model.auto$fitted.values, model.auto$residuals,
+     xlab="Fitted values\nlm(mpg . ~ -name)",
+     ylab="Residuals",
+     main="Residuals vs. Fitted");
+abline(0,0)
+
+```
+
+### Part 2-2.1-(a)-(iv).
+
+```{r}
+
+#Here we are plotting the histogram of residuals. The histogram provides a visual representation of the numerical data. It reveals the distribution of data, skewness, if the data points converge around zero or not.
+
+hist(model.auto$residuals, xlab='Model Residuals', ylab='Frequency', main='Auto Residual Histogram')
+
+```
+#### Textual Answer: The histogram of the residuals does follow a gaussian distribution. However, it is slightly skewed towards the right. The residual plot from part 2-2.1-(a)-(iii) is good, as the data points looks clustered around zero. It is evident that there are more negative residuals as compared to positive residuals and all converge around zero.
+
+### Part 2-2.1-(b).
+
+#### Textual Answer: Using the regression model created in Part 2-2.1-(a), our aim here is to narrow down the 3 features that will be the best predictors of mpg. For finding this, we will use summary of the model we created in Part 2-2.1-(a). (Answer continued after code).
+
+```{r}
+
+#Here we want to find 3 such predictors which are most significant to predict the value of our dependent variable mpg. We do that by analyzing the summary of the model with all predictors.
+
+summary(model.auto)
+
+```
+
+#### Textual Answer (Continued from above): From the summary, it is evident from the p-values that the predictors weight, year, and origin are statistically significant for analysis. Hence we will now make a new model which will take these 3 features into consideration for linear regression analysis.
+
+### Part 2-2.1-(b)-(i).
+
+```{r}
+
+#Here we are creating the new model with only 3 predictors which we found as statistically significant from the above analysis of the summary of model with all predictors.
+
+model.auto.new <- lm(mpg ~ weight + year + origin, data = train.df)
+
+```
+
+### Part 2-2.1-(b)-(ii).
+
+```{r}
+
+#Here we are instructed to print the summary of the new model and comment on how well the model fits the data using R^2, RSE, RMSE, Adjusted R^2 value.
+
+#df.residual(model) gives us the value of degrees of freedom of residuals.
+#nrow() gives the number of rows in the data frame.
+#length() gives the number of predictors in the model.
+
+summary(model.auto.new)
+
+RSS <- sum((train.df$mpg-model.auto.new$fitted.values)^2)
+TSS <- sum((train.df$mpg-mean(train.df$mpg))^2)
+
+R.sq_2 <- format(round(1 - (RSS/TSS),2))
+print(paste("R-sq value is ",R.sq_2))
+
+Adj.R.sq_2 <- format(round(1-((1-(1-RSS/TSS))*(nrow(train.df)-1)/(nrow(train.df)-length(model.auto.new$coefficients)-1)),2))
+print(paste("Adjusted R-sq value is ",Adj.R.sq_2))
+
+RSE <- sqrt(RSS/df.residual(model.auto.new))
+RSE_2 <- format(round(RSE,2))
+print(paste("RSE is ",RSE_2))
+
+RMSE <- sqrt(RSS/nrow(train.df))
+RMSE_2 <- format(round(RMSE,2))
+print(paste("RMSE is ",RMSE_2))
+
+```
+
+#### Textual Answer: From the summary of this updated model with just three statistically significant predictors, we can say that the new model fits very well with the data as we have a F-statistic value of 531.8 which is far better than F-statistic value of 1 and better than F-statistic when we used all the predictors, a high R-squared value of 0.81 which is almost similar to R-squared value of all predictors model, RSE and RMSE are 3.39 and 3.37 respectively which can be considered to be low value, also the p-value is very low which is another indicator that the updated model is a good fit with the data.
+
+### Part 2-2.1-(b)-(iii).
+
+```{r}
+
+#Here we are plotting the residuals of the model for residual analysis. Residual plots can expose a biased model better than the numeric output parameters. The residual plots are more effective because it displays problematic patterns in the residuals.
+
+plot(model.auto.new$residuals,
+     xlab="Index",
+     ylab="Residuals",
+     main="Residual plot")
+
+plot(model.auto.new$fitted.values, model.auto.new$residuals,
+     xlab="Fitted values\nlm(mpg ~ weight + year + origin)",
+     ylab="Residuals",
+     main="Residuals vs. Fitted");
+abline(0,0)
+
+```
+
+### Part 2-2.1-(b)-(iv).
+
+```{r}
+
+#Here we are plotting the histogram of residuals. The histogram provides a visual representation of the numerical data. It reveals the distribution of data, skewness, if the data points converge around zero or not.
+
+hist(model.auto.new$residuals, xlab='Model Residuals', ylab='Frequency', main='Auto Residual Histogram With Selected Predictors')
+
+```
+#### Textual Answer: The histogram of the residuals in this updated modes also follow a gaussian distribution. However, we can see a slight skew in the left part and slightly more skewed towards the right. The residual plot from part 2-2.1-(b)-(iii) is better than residual plot from part 2-2.1-(a)-(iii), as more number of data points looks clustered around zero. It is evident that there are more negative residuals as compared to positive residuals and all converge around zero.
+
+### Part 2-2.1-(b)-(v).
+
+```{r}
+
+#Here we are instructed to compare the summaries of two models and including the residual analysis of the two models we have created to answer which of the two models is better and why.
+
+#anova is analysis of variance.
+
+plot(model.auto)
+plot(model.auto.new)
+
+anova(model.auto,model.auto.new)
+
+```
+
+#### Textual Answer: Based on all the plots given by both the models and anova function, we can surely say that the model with 3 predictors performs better and fits the data better. The graph of residuals vs leverage shows the maximum difference between the two models. Also, the p-value given by the anova is 0.06 which is significantly low.
+
+### Part 2-2.1-(c).
+
+```{r}
+
+#Here we have to use the test data set and see how the model we created in part 2-2.1-(b)-(i) predicts the output value or the dependent variable 'mpg' value. For this, we have to use predict().
+
+predictions <- predict(model.auto.new, test.df)
+
+predictions.df <- data.frame("Predicted value" = predictions,
+                            "Test Response value" = test.df[,c("mpg")])
+
+predictions.df
+
+```
+
+### Part 2-2.1-(d).
+
+```{r}
+
+#Here we have to calculate the number of correctly predicted answers using the confidence interval. Since adding the parameter interval gives us an output of matrix array with 3 columns as fit, lwr, upr. We have to change the data frame definition slightly.
+
+predictions.CI <- predict(model.auto.new, test.df, interval="confidence")
+
+predictions.CI.df <- data.frame("Predicted value" = predictions.CI[,c("fit")],
+                            "Test Response value" = test.df[,c("mpg")],
+                            "Lower CI value" = predictions.CI[,c("lwr")],
+                            "Upper CI value" = predictions.CI[,c("upr")])
+
+predictions.CI.df
+
+#Now, we have to use apply function to calculate the number of correctly predicted values. We do that by creating our own function which returns '1' if the test response value fall between the confidence interval given by the predict function and '0' if the test response value falls outside the confidence interval given by the predict function.
+
+compute.match <- function(response,CI.L,CI.U)
+{
+  if(CI.L <= response && response <= CI.U)
+  {
+    return(1)
+  } 
+  else
+  {
+    return(0)
+  }
+}
+
+Matches.CI <- apply(predictions.CI.df, 1, function(predictions.CI.df) compute.match(predictions.CI.df[2],predictions.CI.df[3],predictions.CI.df[4]))
+
+predictions.CI.df <- cbind(predictions.CI.df,Matches.CI)
+predictions.CI.df
+
+#Once, we find the matches, we count how many observations were correctly predicted and we print that number.
+
+count.match.CI <- apply(predictions.CI.df, 2, sum)
+print(paste0("Total observations correctly predicted: ",count.match.CI[5]))
+
+```
+
+### Part 2-2.1-(e).
+
+```{r}
+
+#Here we have to calculate the number of correctly predicted answers using the prediction interval.
+
+predictions.PI <- predict(model.auto.new, test.df, interval="prediction")
+
+predictions.PI.df <- data.frame("Predicted value" = predictions.PI[,c("fit")],
+                            "Test Response value" = test.df[,c("mpg")],
+                            "Lower PI value" = predictions.PI[,c("lwr")],
+                            "Upper PI value" = predictions.PI[,c("upr")])
+
+predictions.PI.df
+
+#Now, we have to use apply function to calculate the number of correctly predicted values. We do that by creating our own function which returns '1' if the test response value fall between the prediction interval given by the predict function and '0' if the test response value falls outside the prediction interval given by the predict function.
+
+compute.match <- function(response,PI.L,PI.U)
+{
+  if(PI.L <= response && response <= PI.U)
+  {
+    return(1)
+  } 
+  else
+  {
+    return(0)
+  }
+}
+
+Matches.PI <- apply(predictions.PI.df, 1, function(predictions.PI.df) compute.match(predictions.PI.df[2],predictions.PI.df[3],predictions.PI.df[4]))
+
+predictions.PI.df <- cbind(predictions.PI.df,Matches.PI)
+predictions.PI.df
+
+#Once, we find the matches, we count how many observations were correctly predicted and we print that number.
+
+count.match.PI <- apply(predictions.PI.df, 2, sum)
+print(paste0("Total observations correctly predicted: ",count.match.PI[5]))
+
+```
+
+### Part 2-2.1-(f)-(i).
+
+#### Textual Answer: As it is evident from the R console of both part 2-2.1-(d) and part 2-2.1-(e), we got more matches with prediction intervals. Confidence interval gave N=7 correctly predicted outputs and Prediction intervals gave N=20 correctly predicted outputs.
+
+### Part 2-2.1-(f)-(ii).
+
+#### Textual Answer: The reason that we got more number of correctly predicted outputs in Prediction interval is that the prediction interval is wider than the confidence interval for the same output. Even if the predicted value is the same for both the predict methods, the predict method with interval parameter as prediction gave the interval much wider. Consider the example of 1st output value, confidence interval lies (22.298650,23.87587) and prediction interval lies (16.376384,29.79814). Prediction interval easily accomodated the test response and hence got more number of matches.

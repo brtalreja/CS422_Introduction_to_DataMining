@@ -1,0 +1,447 @@
+---
+title: "CS 422 HW4"
+author: "Bhavesh Rajesh Talreja (A20516822)"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+  html_document:
+    toc: yes
+    df_print: paged
+---
+
+### Part 2-2.1-(a).
+
+```{r}
+
+#clearing the existing data from the environment.
+rm(list=ls())
+
+#Here we are provided with two data sets adult-train.csv and adult-test.csv. The task is to build a decision tree classifier using rpart which will classify whether a person makes an annual income of more than 50K or less than/equal to 50K.
+
+#For building the classifier, we have to make sure that the data we have received is clean. We use the below code for cleaning the data i.e. removing the rows where we have "?" in the data fields of train and test data.
+
+library("rpart")
+library("rpart.plot")
+library("caret")
+library("ROCR")
+
+df.train <- read.csv("adult-train.csv", header=T, sep=",")
+df.test <- read.csv("adult-test.csv", header=T, sep=",")
+
+df.train
+df.test
+
+#Tried the implementation as per the hw4.pdf.
+
+# sum(df.train$age == "?")
+# sum(df.train$workclass == "?")
+# sum(df.train$fnlwgt == "?")
+# sum(df.train$education == "?")
+# sum(df.train$education_num == "?")
+# sum(df.train$marital_status == "?")
+# sum(df.train$occupation == "?")
+# sum(df.train$relationship == "?")
+# sum(df.train$race == "?")
+# sum(df.train$sex == "?")
+# sum(df.train$capital_gain == "?")
+# sum(df.train$capital_loss == "?")
+# sum(df.train$hours_per_week == "?")
+# sum(df.train$native_country == "?")
+# 
+# indx.workclass <- which(df.train$workclass == "?")
+# df.train <- df.train[-c(indx.workclass),]
+# 
+# indx.occupation <- which(df.train$occupation == "?")
+# df.train <- df.train[-c(indx.occupation),]
+# 
+# indx.native_country <- which(df.train$native_country == "?")
+# df.train <- df.train[-c(indx.native_country),]
+# 
+# df.train
+
+#Tried to implement the above process using loops. (Training data)
+
+for (i in 1:ncol(df.train)){
+
+  if (sum(df.train[,i] == "?") > 0) {
+    indx.i <- which(df.train[,i] == "?")
+    df.train <- df.train[-c(indx.i),]
+  }
+}
+
+#displaying the updated train data.
+df.train
+
+#Tried to implement the above process using loops. (Testing data)
+
+for (i in 1:ncol(df.test)){
+
+  if (sum(df.test[,i] == "?") > 0) {
+    indx.i <- which(df.test[,i] == "?")
+    df.test <- df.test[-c(indx.i),]
+  }
+}
+
+#displaying the updated test data.
+df.test
+
+```
+
+### Part 2-2.1-(b).
+
+```{r}
+
+#Here our next task is to build the decision tree using the rpart library.
+
+#initializing the seed as per the hw4.pdf file.
+set.seed(1122)
+
+model <- rpart(income ~ ., data=df.train, method="class")
+
+#Here we are plotting the decision tree using the rpart.plot package, with the parameter extra as 104 as our model has more than 2 response class, type=4 for getting more details at each vertex.
+
+rpart.plot(model, extra=104, fallen.leaves=T, type=4, main="Adult train data set Decision Tree")
+
+summary(model)
+```
+
+### Part 2-2.1-(b)-(i).
+
+#### Question: Name the top three important predictors in the model?
+
+#### Textual Answer: Considering that the question is being asked in perspective of important predictors in the model, we can see that relationship, marital_status, and capital_gain are the 3 most important predictors.
+
+### Part 2-2.1-(b)-(ii).
+
+#### Question: The first split is done on which predictor? What is the predicted class of the first node (the first node here refers to the root node)? What is the distribution of observations between the “<=50K” and “>50K” classes at first node?
+
+```{r}
+
+cat("Training dataset class label distribution")
+table(df.train$income)
+
+```
+
+#### Textual Answer: From the above decision trees model plot, we can see that the first split is done on relationship as the predictor. It splits the data instances at the root node in two nodes, left node based on relationship = "Not-in-family, Other-relative, Own-child, Unmarried" and right node based on relationship = "Husband, Wife". The predicted class of the first node is "<=50K" with a predicted probability of 0.75. At the first node, the observations are distributed in a 75% (22653) to 25% (7508) ratio. The majority of instances i.e. 75% (22653) belong to "<=50K" class, while the remaining minority of instances i.e. 25% (7508) belong to ">50K" class.
+
+### Part 2-2.1-(c).
+
+```{r}
+
+#Here we are tasked with making the prediction using the classifier model built in Part 2-2.1-(b) and adult-test data which is loaded in df.test dataframe.
+
+options(digits = 3)
+
+predictions <- predict(model, df.test, type="class")
+
+#Confusion matrix manually.
+
+#Actual class values.
+total_less_eq_50K <- sum(df.test$income == "<=50K")
+total_more_50K <- sum(df.test$income == ">50K")
+
+#Predicted class values.
+pred_less_eq_50K <- sum(df.test$income == "<=50K" & predictions == "<=50K")
+pred_more_50K <- sum(df.test$income == ">50K" & predictions == ">50K")
+
+#confusion matrix display.
+conf.matrix <- table(predictions, df.test$income)
+
+cat("Confusion Matrix created manually\n")
+conf.matrix
+
+#Model performance estimation.
+fn <- conf.matrix[2,1]
+tp <- conf.matrix[1,1]
+fp <- conf.matrix[1,2]
+tn <- conf.matrix[2,2]
+
+classification.accuracy <- (tp + tn)/(fn + tp + fp + tn)
+error.rate <- (fn + fp)/(fn + tp + fp + tn)
+
+#True positive rate/ Recall/ Sensitivity/ Hit Rate.
+tpr <- (tp)/(tp+fn)
+
+#True negative rate/ Specificity/ Miss Rate.
+tnr <- (tn)/(tn+fp)
+
+#Precision/ PPV/ Positive Predictive Value.
+ppv <- (tp)/(tp+fp)
+
+#NPV/ Negative Predictive Value.
+npv <- (tn)/(tn+fn)
+
+#Prevalence.
+prevalence <- (fn+tp)/(fn+tp+fp+tn)
+
+#False positive rate.
+fpr <- (fp)/(fp+tn)
+
+#False negative rate.
+fnr <- (fn)/(fn+tp)
+
+#Balanced Accuracy.
+balanced.accuracy <- (tpr + tnr)/2
+
+#Balanced Error Rate.
+balanced.error.rate <- 1 - balanced.accuracy
+
+cat("\nClassificaition Accuracy:", classification.accuracy,
+    "\nError Rate:", error.rate,
+    "\nSensitivity/TPR:", tpr,
+    "\nSpecificity/TNR:", tnr,
+    "\nFPR:", fpr,
+    "\nFNR:", fnr,
+    "\nBalanced Accuracy:", balanced.accuracy,
+    "\nBalanced Error Rate:", balanced.error.rate,
+    "\nPrevalence:", prevalence,
+    "\nNegative Prediction Value:", npv,
+    "\nPrecision:", ppv, "\n\n")
+
+
+#confusion matrix using in-built method.
+confusionMatrix(predictions, as.factor(df.test$income))
+
+```
+
+### Part 2-2.1-(c)-(i).
+
+#### Question: What is the balanced accuracy of the model?
+
+#### Textual Answer: From the analysis of prediction and studying the confusion matrix created in the Part 2-2.1-(c), we can say that the balanced accuracy of the model is 0.726.
+
+### Part 2-2.1-(c)-(ii).
+
+#### Question: What is the balanced error rate of the model?
+
+#### Textual Answer: From the analysis of prediction and studying the confusion matrix created in the Part 2-2.1-(c), we can say that the balanced error rate of the model is 0.274.
+
+### Part 2-2.1-(c)-(iii).
+
+#### Question: What is the sensitivity? Specificity?
+
+#### Textual Answer: Sensitivity of a model is the ability to produce true positives of each available category. Specificity of a model is the ability to produce true negatives of each available category. From the analysis of prediction and studying the confusion matrix created in the Part 2-2.1-(c), we can say that the sensitivity of the model is 0.948 and specificity of the model is 0.504.
+
+### Part 2-2.1-(c)-(iv).
+
+#### Question: What is the AUC of the ROC curve. Plot the ROC curve
+
+```{r}
+
+#plotting the ROC curve and calculating the AUC value.
+pred.rocr <- predict(model, newdata=df.test, type="prob")[,2]
+f.pred <- prediction(pred.rocr, df.test$income)
+f.perf <- performance(f.pred, "tpr", "fpr")
+plot(f.perf, colorize=T, lwd=3)
+abline(0,1)
+auc <- performance(f.pred, measure = "auc")
+auc@y.values[[1]]
+
+```
+
+#### Textual Answer: ROC curve allows to plot different models and plot it on XY plot where X-axis is the False Positive rate and Y-axis is the True Positive rate. ROC works for binary class classification. To get a best model out of various models, we want the model with highest AUC. AUC of the ROC curve is known as the Area Under the Curve of Receiver Operations Characteristics curve. In our problem, the AUC value is 0.843.
+
+### Part 2-2.1-(d).
+
+```{r}
+
+#Here we are printing the complexity table of the model to examine that and decide whether it will be beneficial to prune the decision tree in our example.
+
+plotcp(model)
+printcp(model)
+
+# #trial pruning.
+# cpx <- model$cptable[which.min(model$cptable[,"xerror"]), "CP"]
+# cpx
+# pruned.model <- prune(model, cp=cpx)
+# 
+# rpart.plot(pruned.model, extra=104, fallen.leaves=T, type=4, main="Trial Pruned Decision Tree")
+# 
+# # Run predictions on the trial pruned model.
+# pred.ptree <- predict(pruned.model, df.test, type="class")
+# #confusion matrix of the trial pruned tree.
+# confusionMatrix(pred.ptree, as.factor(df.test$income))
+
+```
+
+#### Textual Answer: Post examining the complexity table and graphical representation of the cross validated error summary, we can say that the decision tree won't benefit from pruning. Pruning is done based on the complexity parameter and cross validation error. To do the optimal pruning of a decision tree which will have the small height/depth and least cross validated error. From the cp table, we can see that the least cross validated error is obtained at the last level of the classifier model we have already created. Hence, there won't be any benefit from pruning. Practically, this can be shown by uncommenting the #trial pruning code section in Part 2-2.1-(d).
+
+### Part 2-2.1-(e)-(i).
+
+```{r}
+
+#Here we want to solve the imbalance problem that we have in our training data by undersampling so that both the classes have same number of instances in the training data.
+
+#setting the seed value.
+set.seed(1122)
+
+table(df.train$income)
+
+```
+
+#### Textual Answer: From the above displayed distribution of the income variable in the training data, we can see that there are 22653 instances in the "<=50K" class and 7508 instances in the ">50K" class.
+
+### Part 2-2.1-(e)-(ii).
+
+```{r}
+
+#Here we want to solve the imbalance problem that we have in our training data by undersampling so that both the classes have same number of instances in the training data.
+
+#taking the majority class.
+df.train_temp <- df.train[df.train$income=="<=50K",]
+df.train_temp
+nrow(df.train_temp)
+
+#number of instances in minority class.
+no.minority_samples <- sum(df.train$income == ">50K")
+no.minority_samples
+
+#undersampling the majority class with respect to number of instances in the minority class.
+majority.samples <- sample(1:nrow(df.train_temp), no.minority_samples)
+
+#binding the new number of instances of the majority class and the old instances of minority class.
+df.train_new <- rbind(df.train_temp[majority.samples,],df.train[df.train$income == ">50K",])
+
+#Checking the distribution to be same for both the classes.
+table(df.train_new$income)
+
+```
+
+### Part 2-2.1-(e)-(iii).
+
+```{r}
+
+#Training a new model based on the balanced data set created in Part 2-2.1-(e)-(ii).
+model_new <- rpart(income ~ ., data=df.train_new, method="class")
+
+#Here we are plotting the decision tree using the rpart.plot package, with the parameter extra as 104 as our model has more than 2 response class, type=4 for getting more details at each vertex.
+
+rpart.plot(model_new, extra=104, fallen.leaves=T, type=4, main="Balanced Adult train data set Decision Tree")
+
+#Here we are tasked with making the prediction using the classifier model built in Part 2-2.1-(e)-(iii) and adult-test data which is loaded in df.test dataframe.
+
+options(digits = 3)
+
+predictions_new <- predict(model_new, df.test, type="class")
+
+#Confusion matrix manually.
+
+#Actual class values.
+total_less_eq_50K <- sum(df.test$income == "<=50K")
+total_more_50K <- sum(df.test$income == ">50K")
+
+#Predicted class values.
+pred_less_eq_50K <- sum(df.test$income == "<=50K" & predictions_new == "<=50K")
+pred_more_50K <- sum(df.test$income == ">50K" & predictions_new == ">50K")
+
+#confusion matrix display.
+conf.matrix_new <- table(predictions_new, df.test$income)
+
+cat("Confusion Matrix created manually\n")
+conf.matrix_new
+
+#Model performance estimation.
+fn_new <- conf.matrix_new[2,1]
+tp_new <- conf.matrix_new[1,1]
+fp_new <- conf.matrix_new[1,2]
+tn_new <- conf.matrix_new[2,2]
+
+classification.accuracy_new <- (tp_new + tn_new)/(fn_new + tp_new + fp_new + tn_new)
+error.rate_new <- (fn_new + fp_new)/(fn_new + tp_new + fp_new + tn_new)
+
+#True positive rate/ Recall/ Sensitivity/ Hit Rate.
+tpr_new <- (tp_new)/(tp_new+fn_new)
+
+#True negative rate/ Specificity/ Miss Rate.
+tnr_new <- (tn_new)/(tn_new+fp_new)
+
+#Precision/ PPV/ Positive Predictive Value.
+ppv_new <- (tp_new)/(tp_new+fp_new)
+
+#NPV/ Negative Predictive Value.
+npv_new <- (tn_new)/(tn_new+fn_new)
+
+#Prevalence.
+prevalence_new <- (fn_new+tp_new)/(fn_new+tp_new+fp_new+tn_new)
+
+#False positive rate.
+fpr_new <- (fp_new)/(fp_new+tn_new)
+
+#False negative rate.
+fnr_new <- (fn_new)/(fn_new+tp_new)
+
+#Balanced Accuracy.
+balanced.accuracy_new <- (tpr_new + tnr_new)/2
+
+#Balanced Error Rate.
+balanced.error.rate_new <- 1 - balanced.accuracy_new
+
+cat("\nClassificaition Accuracy:", classification.accuracy_new,
+    "\nError Rate:", error.rate_new,
+    "\nSensitivity/TPR:", tpr_new,
+    "\nSpecificity/TNR:", tnr_new,
+    "\nFPR:", fpr_new,
+    "\nFNR:", fnr_new,
+    "\nBalanced Accuracy:", balanced.accuracy_new,
+    "\nBalanced Error Rate:", balanced.error.rate_new,
+    "\nPrevalence:", prevalence_new,
+    "\nNegative Prediction Value:", npv_new,
+    "\nPrecision:", ppv_new, "\n\n")
+
+
+#confusion matrix using in-built method.
+confusionMatrix(predictions_new, as.factor(df.test$income))
+
+```
+
+
+
+### Part 2-2.1-(e)-(iii)-(i).
+
+#### Question: What is the balanced accuracy of this model?
+
+#### Textual Answer: From the analysis of prediction and studying the confusion matrix created in the Part 2-2.1-(e)-(iii), we can say that the balanced accuracy of the model is 0.805.
+
+### Part 2-2.1-(e)-(iii)-(ii).
+
+#### Question: What is the balanced error rate of this model?
+
+#### Textual Answer: From the analysis of prediction and studying the confusion matrix created in the Part 2-2.1-(e)-(iii), we can say that the balanced error rate of the model is 0.195.
+
+### Part 2-2.1-(e)-(iii)-(iii).
+
+#### Question: What is the sensitivity? Specificity?
+
+#### Textual Answer: Sensitivity of a model is the ability to produce true positives of each available category. Specificity of a model is the ability to produce true negatives of each available category. From the analysis of prediction and studying the confusion matrix created in the Part 2-2.1-(e)-(iii), we can say that the sensitivity of the model is 0.742 and specificity of the model is 0.867.
+
+### Part 2-2.1-(e)-(iii)-(iv).
+
+#### Question: What is the AUC of the ROC curve. Plot the ROC curve
+
+```{r}
+
+#Plotting the ROC curve and calculating the AUC value.
+pred.rocr_new <- predict(model_new, newdata=df.test, type="prob")[,2]
+f.pred_new <- prediction(pred.rocr_new, df.test$income)
+f.perf_new <- performance(f.pred_new, "tpr", "fpr")
+plot(f.perf_new, colorize=T, lwd=3)
+abline(0,1)
+auc_new <- performance(f.pred_new, measure = "auc")
+auc_new@y.values[[1]]
+
+```
+
+#### Textual Answer: ROC curve allows to plot different models and plot it on XY plot where X-axis is the False Positive rate and Y-axis is the True Positive rate. ROC works for binary class classification. To get a best model out of various models, we want the model with highest AUC. AUC of the ROC curve is known as the Area Under the Curve of Receiver Operations Characteristics curve. In our problem, the AUC value is 0.845.
+
+### Part 2-2.1-(f).
+
+#### Question: Comment on the differences in the balanced accuracy, sensitivity, specificity, positive predictive value and AUC of the models used in (c) and (e).
+
+#### Textual Answer: We built the decision tree classifier model two times. The model in part 2-2.1-(c) was built with the imbalanced training data set where 75% of the instances belonged to one class and 25% instances belonged to the other class. The model in part 2-2.1-(e)-(iii) was built by undersampling the instances in the majority class with respect to the minority class instances and hence the training data set had same number of instances for both the classes. Based on the model performance evaluation metrics like sensitivity, specificity, balanced accuracy, positive predictive value and AUC of both the models, we reach the following conclusion:
+#### Based on the difference in balanced accuracy, since the second model had balanced training data, the balanced accuracy improved by 0.079.
+#### Based on the difference in sensitivity, it tells how apt the model is detecting events in the positive class. In our example, how good the model is to detect "<=50K" as "<=50K". The first model was trained on the imbalanced data set which had 75% of instances corresponding to "<=50K" and when we undersampled this majority class for the second model to use as a balanced training data, the sensitivity value decreased by 0.206.
+#### Based on the difference in specificity, it tells how apt the model is detecting events in the negative class. In our example, how good the model is to detect ">50K" as ">50K". The first model was trained on the imbalanced data set which had 25% of instances corresponding to ">50K" and when we used a balanced training data for the second model, the specificity value increased by 0.363. The first model was only able to classify 50.4% of the ">50K" instances as ">50K instances", whereas the second model performs better and classifies 86.7% of the ">50K" instances as ">50K" instances.
+#### Based on the difference in positive predictive value, precision tells about how good the model is in assigining the positive events to the positive class. The precision increased by 0.091 in the second model where we used a balanced training data set.
+#### Based on the difference in AUC values and ROC curve analysis for both the models, we get a higher value of AUC in the second model where we used a balanced training data set. Even though the difference of AUC is a slight value of 0.002, but an more prevalent criterion of ROC curve which tells that it is important for a classifier to access the higher TPR value in the first few instances without incurring a higher FPR. We can see that in the ROC curve plot of the second model, a higher TPR value is achieved at a lower FPR value.
+#### Considering all the above mentioned details, the second model clearly performs better than the first one.
