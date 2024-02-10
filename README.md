@@ -1,4 +1,5 @@
 #CS422: Introduction to Data Mining (Fall 2022, Guidance: Prof. Vijay Gurbani)
+##Illinois Institute of Technology
 
 This repository contains my learning journey in the subject of Introduction to Data Mining using R. The course covered a variety of topics to equip me with the fundamental skills in data mining and analysis. Below is a summary of the key concepts and techniques learned:
 
